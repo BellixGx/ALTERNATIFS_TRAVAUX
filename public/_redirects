@@ -1,2 +1,2 @@
 /* /index.html 200
-/api/* https://bellix.pythonanywhere.com/:splat 200
+/api/* https://bellix.pythonanywhere.com/api/:splat 200
