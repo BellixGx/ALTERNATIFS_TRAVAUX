@@ -1,5 +1,5 @@
 export const config = {
-    apiBase: '/api',
+    apiBase: import.meta.env.VITE_API_BASE || "/api",
     endpoints: {
       fetchEmployees: '/fetchEmployees',
       fetchArticles: '/fetchArticles',
