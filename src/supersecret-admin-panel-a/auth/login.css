@@ -1,0 +1,43 @@
+/* .logo {
+    width: 150px !important;
+    height: auto !important; 
+    max-width: 100%; 
+  }
+  .logo-container {
+    display: flex;
+    justify-content: center;  
+    align-items: center;      
+
+  }   */
+
+.animated-text {
+  background: linear-gradient(
+    to right,
+    #8D6E63 20%, /* Brown */
+    #4CAF50 40%, /* Green */
+
+    #8D6E63 80%  /* Stay blue */
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: wave 3s linear 1; /* Run once (1 iteration) */
+  animation-fill-mode: forwards; /* Keep the final state */
+}
+
+@keyframes wave {
+  0% {
+    background-position: 200% 0; /* Start from the right, showing brown */
+  }
+  100% {
+    background-position: 0 0; /* End on the left, showing blue */
+  }
+}
+
+.custom-input{
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid #d9d9d9;
+  border-radius: 0.5rem;
+}

@@ -1,0 +1,28 @@
+/* Articles Section - START */
+
+
+.articles{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+}
+/* Articles Section - END */
+
+/* Employees Section - START */
+
+.custom-radio .ant-radio-checked .ant-radio-inner {
+    border-color: var(--radio-color); /* Change the border color */
+    background-color: var(--radio-color); /* Change the inner circle color */
+  }
+  
+  .custom-radio .ant-radio-inner {
+    border-color: var(--radio-color); /* Change the border color for unselected state */
+  }
+  
+  .custom-radio .ant-radio:hover .ant-radio-inner {
+    border-color: var(--radio-color); /* Change hover effect */
+  }
+  
+
+/* Employees Section - END */
