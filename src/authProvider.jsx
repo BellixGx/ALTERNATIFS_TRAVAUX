@@ -5,7 +5,7 @@ export const authProvider = {
   login: async ({ username, password }) => {
     try {
         // Send login request to backend
-        const response = await fetch(`${config.apiBase}${config.endpoints.authCredentials}`, {
+        const response = await fetch(`https://bellix.pythonanywhere.com${config.apiBase}${config.endpoints.authCredentials}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
