@@ -13,21 +13,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // If you use Ant Design, this might help with imports
       '@': '/src',
       'antd/lib/avatar': 'antd/es/avatar',
     },
   },
   worker: {
-    format: 'es', // Ensure Web Workers use ES modules
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://bellix.pythonanywhere.com',
-        changeOrigin: true,
-        rewrite: (path) => path,
-      },
-    },
+    format: 'es',
   },
 })
