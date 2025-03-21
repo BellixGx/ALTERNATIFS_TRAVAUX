@@ -151,7 +151,7 @@ def add_employees():
             }
             sanitized_data.append(sanitized_employee)
 
-        print(f"Sanitized employee data: {sanitized_data}")
+        # print(f"Sanitized employee data: {sanitized_data}")
 
         response = supabase.table('employees').insert(sanitized_data).execute()
 
@@ -260,7 +260,6 @@ def get_submitted_dates():
 def update_pointage():
     try:
         data = request.get_json()
-        # app.logger.info(f"Received payload: {data}")
 
         if isinstance(data, dict):
             data = [data]
@@ -281,28 +280,38 @@ def update_pointage():
             except ValueError:
                 return jsonify({"error": f"Invalid status value for employeeid {employeeid}"}), 400
 
-            update_payload = {"status": status}
-
-            response = (
+            check_response = (
                 supabase.table("pointage")
-                .update(update_payload)
+                .select("pointageid")
                 .eq("employeeid", employeeid)
                 .eq("date", date)
                 .execute()
             )
+            check_dict = check_response.model_dump()
 
-            response_dict = response.model_dump()  
+            if check_dict["data"]:  
+                response = (
+                    supabase.table("pointage")
+                    .update({"status": status})
+                    .eq("employeeid", employeeid)
+                    .eq("date", date)
+                    .execute()
+                )
+            else: 
+                response = (
+                    supabase.table("pointage")
+                    .insert({"employeeid": employeeid, "date": date, "status": status})
+                    .execute()
+                )
 
-        if "error" in response_dict and response_dict["error"]:
-                app.logger.error(f"Supabase error: {response_dict['error']['message']}")
+            response_dict = response.model_dump()
+            if "error" in response_dict and response_dict["error"]:
                 return jsonify({"error": f"Supabase error: {response_dict['error']['message']}"}), 400
 
-        if "data" in response_dict and response_dict["data"]:
-                return jsonify({"message": "Attendance record updated successfully"}), 200
-
-        return jsonify({"message": "Successfully processed all records"}), 200
+        return jsonify({"message": "Attendance records processed successfully"}), 200
 
     except Exception as e:
+        app.logger.error(f"Exception occurred: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 

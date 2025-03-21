@@ -27,6 +27,7 @@ import moment from 'moment';
 import '../Admin.css';
 import logo1 from './logo.jpg';
 import "jspdf-autotable";
+
 const AdminEmployees = () => {
   const [activeTab, setActiveTab] = useState(sessionStorage.getItem("activeTab") || "1");
   const [attendanceData, setAttendanceData] = useState([]);
@@ -311,6 +312,7 @@ const fetchSalariesForEmp = (value) => {
     [`${employeeId}-${date}`]: { EmployeeID: employeeId, Date: date, Status: status === "present" ? 1 : 0 },
   }));
   };
+
   const handleWeekChange = (date) => {
     if (date) {
       setCurrentWeek(date.startOf('week')); 
@@ -341,7 +343,7 @@ const fetchSalariesForEmp = (value) => {
 
       const result = await response.json();
       message.success(result.message || 'Attendance successfully submitted!');
-      // fetchSubmittedDates(); 
+      fetchSubmittedDates(); 
     } catch (error) {
       message.error(`Submission failed: ${error.message}`);
     }
@@ -376,34 +378,48 @@ const fetchSalariesForEmp = (value) => {
 
   const [editableDates, setEditableDates] = useState({});
 
-  const updateAttendance = useCallback(async () => {
-    try {
-      const payload = Object.values(modifiedAttendance); 
-      // console.log(payload);
-      if (payload.length === 0) {
-        message.warning("No changes detected.");
-        return;
+  const updateAttendance = useCallback(
+    async (selectedDate) => {
+      try {
+        if (typeof selectedDate !== "string") {
+          throw new Error(`selectedDate must be a string, got: ${typeof selectedDate} - Value: ${JSON.stringify(selectedDate)}`);
+        }
+  
+        const payload = attendanceData.map((employee) => ({
+          EmployeeID: employee.employeeid,
+          Date: selectedDate,           
+          Status: employee.attendance[selectedDate] === "present" ? 1 : 0, 
+        }));
+  
+        const response = await fetch(`${config.apiBase}${config.endpoints.updatePointage}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+  
+        if (!response.ok) {
+          const errorResponse = await response.json();
+          throw new Error(errorResponse.error || "Failed to update attendance");
+        }
+  
+        const result = await response.json();
+        message.success(result.message || `Attendance successfully updated for ${selectedDate}`);
+  
+        setModifiedAttendance((prev) => {
+          const newModified = { ...prev };
+          Object.keys(newModified).forEach((key) => {
+            if (key.endsWith(`-${selectedDate}`)) {
+              delete newModified[key];
+            }
+          });
+          return newModified;
+        });
+      } catch (error) {
+        message.error(`Update failed: ${error.message}`);
       }
-  
-      const response = await fetch(`${config.apiBase}${config.endpoints.updatePointage}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-  
-      if (!response.ok) {
-        const errorResponse = await response.json();
-        throw new Error(errorResponse.error || "Failed to update attendance");
-      }
-  
-      const result = await response.json();
-      message.success(result.message || "Attendance successfully updated!");
-  
-      setModifiedAttendance({});
-    } catch (error) {
-      message.error(`Update failed: ${error.message}`);
-    }
-  }, [modifiedAttendance, setModifiedAttendance]);
+    },
+    [attendanceData, setModifiedAttendance]
+  );
   
 
   const toggleEditMode = useCallback((dateKey) => {
@@ -414,19 +430,13 @@ const fetchSalariesForEmp = (value) => {
   }, []);
   
 
-    const handleConfirmEdit = useCallback(
-      (dateKey) => {
-        const updatedAttendanceData = attendanceData.map((record) => ({
-          employeeId: record.employeeid,
-          date: dateKey,
-          status: record.attendance[dateKey],
-        }));
-        updateAttendance(updatedAttendanceData); 
-        toggleEditMode(dateKey);
-      },
-      [attendanceData, updateAttendance, toggleEditMode] 
-    );
-
+  const handleConfirmEdit = useCallback(
+    (dateKey) => {
+      updateAttendance(dateKey);
+      toggleEditMode(dateKey);
+    },
+    [updateAttendance, toggleEditMode]
+  );
     const handleCancelEdit = useCallback(
       (dateKey) => {
         toggleEditMode(dateKey); 
@@ -434,21 +444,21 @@ const fetchSalariesForEmp = (value) => {
       [toggleEditMode]
     );
 
-    // const [submittedDates, setSubmittedDates] = useState([]);
-    // const fetchSubmittedDates = async () => {
-    //   try {
-    //     const response = await fetch(`${config.apiBase}${config.endpoints.getSubmittedDates}`);
-    //     if (!response.ok) throw new Error('Failed to fetch submitted dates');
-    //     const dates = await response.json();
-    //     setSubmittedDates(dates);
-    //   } catch (error) {
-    //     console.error('Error fetching submitted dates:', error);
-    //   }
-    // };
+    const [submittedDates, setSubmittedDates] = useState([]);
+    const fetchSubmittedDates = async () => {
+      try {
+        const response = await fetch(`${config.apiBase}${config.endpoints.getSubmittedDates}`);
+        if (!response.ok) throw new Error('Failed to fetch submitted dates');
+        const dates = await response.json();
+        setSubmittedDates(dates);
+      } catch (error) {
+        console.error('Error fetching submitted dates:', error);
+      }
+    };
     
-    // useEffect(() => {
-    //   fetchSubmittedDates();
-    // }, []);
+    useEffect(() => {
+      fetchSubmittedDates();
+    }, []);
     
  
     const columns = useMemo(
@@ -458,11 +468,11 @@ const fetchSalariesForEmp = (value) => {
           const dayDate = currentWeek.clone().add(i, 'days');
           const dateKey = dayDate.format('YYYY-MM-DD');
           const isCurrentDay = dayDate.isSame(moment(), 'day');
-          const currentDay = dayjs();
+          const currentDay = moment(); 
           const isBeforeCurrentDay = dayDate.isBefore(currentDay, 'day');
-          // const isSubmitted = submittedDates.includes(dateKey);
-          const isEditing = editableDates[dateKey]; 
-          const isDisabled = !isEditing && !isBeforeCurrentDay && !isCurrentDay; 
+          const isSubmitted = submittedDates.includes(dateKey); 
+          const isEditing = editableDates[dateKey];
+          const isDisabled = (!isEditing && (!isBeforeCurrentDay || !isCurrentDay));
  
           return {
             title: (
@@ -483,7 +493,7 @@ const fetchSalariesForEmp = (value) => {
                   <br />
                   {dayDate.format('(YYYY-MM-DD)')}
                 </div>
-                {isBeforeCurrentDay && (
+                {(isBeforeCurrentDay || isSubmitted) && (
                   <div style={{ display: 'flex', gap: '5px' }}>
                     {isEditing ? (
                       <>
@@ -526,7 +536,7 @@ const fetchSalariesForEmp = (value) => {
           };
         }),
       ],
-      [currentWeek, editableDates, toggleEditMode, handleConfirmEdit, handleCancelEdit] // Recalculate when state changes
+      [currentWeek, submittedDates, editableDates, toggleEditMode, handleConfirmEdit, handleCancelEdit] // Recalculate when state changes
     );
     
 const salariesColumns = useMemo (()=>
