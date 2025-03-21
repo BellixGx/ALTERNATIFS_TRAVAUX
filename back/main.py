@@ -260,7 +260,6 @@ def get_submitted_dates():
 def update_pointage():
     try:
         data = request.get_json()
-
         if isinstance(data, dict):
             data = [data]
 
@@ -280,35 +279,28 @@ def update_pointage():
             except ValueError:
                 return jsonify({"error": f"Invalid status value for employeeid {employeeid}"}), 400
 
-            check_response = (
+            upsert_payload = {
+                "employeeid": employeeid,
+                "date": date,
+                "status": status
+            }
+
+            response = (
                 supabase.table("pointage")
-                .select("pointageid")
-                .eq("employeeid", employeeid)
-                .eq("date", date)
+                .upsert(upsert_payload, on_conflict="employeeid, date")
                 .execute()
             )
-            check_dict = check_response.model_dump()
-
-            if check_dict["data"]:  
-                response = (
-                    supabase.table("pointage")
-                    .update({"status": status})
-                    .eq("employeeid", employeeid)
-                    .eq("date", date)
-                    .execute()
-                )
-            else: 
-                response = (
-                    supabase.table("pointage")
-                    .insert({"employeeid": employeeid, "date": date, "status": status})
-                    .execute()
-                )
 
             response_dict = response.model_dump()
+
             if "error" in response_dict and response_dict["error"]:
+                app.logger.error(f"Supabase error: {response_dict['error']['message']}")
                 return jsonify({"error": f"Supabase error: {response_dict['error']['message']}"}), 400
 
         return jsonify({"message": "Attendance records processed successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
     except Exception as e:
         app.logger.error(f"Exception occurred: {str(e)}")
