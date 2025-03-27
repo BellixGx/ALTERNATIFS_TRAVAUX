@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Layout, Button, Tooltip, theme } from 'antd';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from "react-i18next";
 import {
   AreaChartOutlined,
   MenuFoldOutlined,
@@ -10,26 +11,28 @@ import {
   FileDoneOutlined,
   ContainerOutlined,
   TeamOutlined,
+  TranslationOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { authProvider } from '../../../src/authProvider';
+import Flag from 'react-flagkit';
 import './SideBar.css';
 
 const AdminSidebar = ({ collapsed, setCollapsed }) => {
   const { Sider, Header } = Layout;
   const { token: { colorBgContainer } } = theme.useToken();
+  const { t, i18n } = useTranslation();
 
-  // Set collapsed to true on component mount
   useEffect(() => {
-    setCollapsed(true); // Collapse the sidebar by default
-  }, [setCollapsed]); // Run once on mount
+    setCollapsed(true);
+  }, [setCollapsed]);
 
-  // Existing useEffect for mobile responsiveness
   useEffect(() => {
     if (window.innerWidth <= 480) {
       setCollapsed(true);
     }
   }, [setCollapsed]);
+
 
   const handleLinkClick = () => {
     if (window.innerWidth <= 480) {
@@ -43,6 +46,27 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
     authProvider.logout();
     navigate('/login');
   };
+
+  const supportedLanguages = ["en", "fr"];
+  const languageMap = {
+    en: { code: "US", key: "sidebar.toggleLanguage.en" },
+    fr: { code: "FR", key: "sidebar.toggleLanguage.fr" },
+  };
+
+  const toggleLanguage = () => {
+    const currentIndex = supportedLanguages.indexOf(i18n.language);
+    const nextIndex = (currentIndex + 1) % supportedLanguages.length;
+    const newLang = supportedLanguages[nextIndex];
+    i18n.changeLanguage(newLang);
+  };
+
+  const menuItems = [
+    { path: "/supersecret-admin-panel-a", icon: <AreaChartOutlined />, key: "sidebar.dashboard", exact: true },
+    { path: "/supersecret-admin-panel-a/projects", icon: <FolderOpenOutlined />, key: "sidebar.projects" },
+    { path: "/supersecret-admin-panel-a/reports", icon: <FileDoneOutlined />, key: "sidebar.reports" },
+    { path: "/supersecret-admin-panel-a/articles", icon: <ContainerOutlined />, key: "sidebar.articles" },
+    { path: "/supersecret-admin-panel-a/employees", icon: <TeamOutlined />, key: "sidebar.employees" },
+  ];
 
   return (
     <Sider
@@ -86,137 +110,65 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
         />
       </Header>
       <div className="side" style={{ flexGrow: 1 }}>
-        {/* Sidebar items */}
-        {collapsed ? (
-          <Tooltip title="Dashboard" placement="right">
-            <NavLink
-              to="/supersecret-admin-panel-a"
-              end
-              className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-              style={{ transition: 'all 0.3s ease-in-out' }}
-              onClick={handleLinkClick}
-            >
-              <AreaChartOutlined />
-            </NavLink>
-          </Tooltip>
-        ) : (
-          <NavLink
-            to="/supersecret-admin-panel-a"
-            end
-            className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-            style={{ transition: 'all 0.3s ease-in-out' }}
-            onClick={handleLinkClick}
-          >
-            <AreaChartOutlined />
-            <span>Dashboard</span>
-          </NavLink>
-        )}
-
-        {collapsed ? (
-          <Tooltip title="Projects" placement="right">
-            <NavLink
-              to="/supersecret-admin-panel-a/projects"
-              className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-              style={{ transition: 'all 0.3s ease-in-out' }}
-              onClick={handleLinkClick}
-            >
-              <FolderOpenOutlined />
-            </NavLink>
-          </Tooltip>
-        ) : (
-          <NavLink
-            to="/supersecret-admin-panel-a/projects"
-            className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-            style={{ transition: 'all 0.3s ease-in-out' }}
-            onClick={handleLinkClick}
-          >
-            <FolderOpenOutlined />
-            <span>Projects</span>
-          </NavLink>
-        )}
-
-        {collapsed ? (
-          <Tooltip title="Reports" placement="right">
-            <NavLink
-              to="/supersecret-admin-panel-a/reports"
-              className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-              style={{ transition: 'all 0.3s ease-in-out' }}
-              onClick={handleLinkClick}
-            >
-              <FileDoneOutlined />
-            </NavLink>
-          </Tooltip>
-        ) : (
-          <NavLink
-            to="/supersecret-admin-panel-a/reports"
-            className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-            style={{ transition: 'all 0.3s ease-in-out' }}
-            onClick={handleLinkClick}
-          >
-            <FileDoneOutlined />
-            <span>Reports</span>
-          </NavLink>
-        )}
-
-        {collapsed ? (
-          <Tooltip title="Articles" placement="right">
-            <NavLink
-              to="/supersecret-admin-panel-a/articles"
-              className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-              style={{ transition: 'all 0.3s ease-in-out' }}
-              onClick={handleLinkClick}
-            >
-              <ContainerOutlined />
-            </NavLink>
-          </Tooltip>
-        ) : (
-          <NavLink
-            to="/supersecret-admin-panel-a/articles"
-            className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-            style={{ transition: 'all 0.3s ease-in-out' }}
-            onClick={handleLinkClick}
-          >
-            <ContainerOutlined />
-            <span>Articles</span>
-          </NavLink>
-        )}
-
-        {collapsed ? (
-          <Tooltip title="Employees" placement="right">
-            <NavLink
-              to="/supersecret-admin-panel-a/employees"
-              className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-              style={{ transition: 'all 0.3s ease-in-out' }}
-              onClick={handleLinkClick}
-            >
-              <TeamOutlined />
-            </NavLink>
-          </Tooltip>
-        ) : (
-          <NavLink
-            to="/supersecret-admin-panel-a/employees"
-            className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
-            style={{ transition: 'all 0.3s ease-in-out' }}
-            onClick={handleLinkClick}
-          >
-            <TeamOutlined />
-            <span>Employees</span>
-          </NavLink>
-        )}
-
-        <div className="logout-div">
-          {collapsed ? (
-            <Tooltip title="Logout" placement="right">
-              <button className="logout-button collapsed" onClick={handleLogout}>
-                <LogoutOutlined />
-              </button>
+        {menuItems.map((item) => (
+          collapsed ? (
+            <Tooltip key={item.key} title={t(item.key)} placement="right">
+              <NavLink
+                to={item.path}
+                end={item.exact}
+                className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
+                style={{ transition: 'all 0.3s ease-in-out' }}
+                onClick={handleLinkClick}
+              >
+                {item.icon}
+              </NavLink>
             </Tooltip>
           ) : (
-            <button className="logout-button" onClick={handleLogout}>
-              <LogoutOutlined style={{ marginRight: '10px', fontSize: 'x-large' }} />
-              <span>Logout</span>
-            </button>
-          )}
+            <NavLink
+              key={item.key}
+              to={item.path}
+              end={item.exact}
+              className={({ isActive }) => `nav-option ${isActive ? 'active2' : ''}`}
+              style={{ transition: 'all 0.3s ease-in-out' }}
+              onClick={handleLinkClick}
+            >
+              {item.icon}
+              <span>{t(item.key)}</span>
+            </NavLink>
+          )
+        ))}
+
+        <div className="logout-div">
+          <div>
+            {collapsed ? (
+              <Tooltip title={t("sidebar.language")} placement="right">
+                <button onClick={toggleLanguage} className="custom-button language-button collapsed">
+                  <TranslationOutlined />
+                  <Flag country={languageMap[i18n.language]?.code || "US"} size={20} style={{ marginLeft: '5px' }} />
+                </button>
+              </Tooltip>
+            ) : (
+              <button onClick={toggleLanguage} className="custom-button language-button">
+                <TranslationOutlined style={{ marginRight: '10px', fontSize: 'x-large' }} />
+                <Flag country={languageMap[i18n.language]?.code || "US"} size={20} style={{ marginRight: '5px' }} />
+                {t(languageMap[i18n.language]?.key || "sidebar.language")}
+              </button>
+            )}
+          </div>
+          <div>
+            {collapsed ? (
+              <Tooltip title={t("sidebar.logout")} placement="right">
+                <button className="custom-button logout-button collapsed" onClick={handleLogout}>
+                  <LogoutOutlined />
+                </button>
+              </Tooltip>
+            ) : (
+              <button className="custom-button logout-button" onClick={handleLogout}>
+                <LogoutOutlined style={{ marginRight: '10px', fontSize: 'x-large' }} />
+                <span>{t("sidebar.logout")}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Sider>

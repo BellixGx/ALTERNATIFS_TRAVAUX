@@ -1,0 +1,144 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "reports": "Reports",
+    "articles": "Articles",
+    "employees": "Employees",
+    "logout": "Logout",
+    "language": "Language",
+    "toggleLanguage": {
+      "en": "English",
+      "fr": "Français"
+    }
+  },
+  "dashboard": {
+    "title": "The Admin Dashboard",
+    "welcome": "Welcome to the Admin Panel",
+    "overview": "Overview",
+    "quickStats": "Quick Stats",
+    "recentActivity": "Recent Activity",
+    "viewDetails": "View Details"
+  },
+"employees": {
+  "title": "Manage Employees",
+  "addNew": "Add New Employee",
+  "search": "Search Employees",
+  "edit": "Edit",
+  "delete": "Delete",
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "nameColumn": "Name",
+  "successAdd": "Employees successfully added!",
+  "errorAdd": "Submission failed: {{message}}",
+  "successUpdateAttendance": "Attendance successfully updated for {{date}}",
+  "errorUpdateAttendance": "Update failed: {{message}}",
+  "present": "Present",
+  "absent": "Absent",
+  "days": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "error": {
+    "fetchEmployees": "Failed to fetch employees",
+    "fetchNewEmployees": "Failed to fetch new employees",
+    "delete": "Failed to delete employees",
+    "saveAttendance": "Failed to save attendance",
+    "submissionFailed": "Submission failed: {{message}}",
+    "selectDates": "Please select both start and end dates.",
+    "fetchSalaries": "Failed to fetch salaries data."
+  },
+  "success": {
+    "delete": "Employees successfully deleted!",
+    "submitAttendance": "Attendance successfully submitted!",
+    "addAdvance": "Advances successfully added!",
+    "deleteReport": "Report deleted successfully!"
+  },
+  "salariesColumns": {
+    "name": "Name",
+    "job": "Job",
+    "prix": "Price",
+    "daysPresent": "Days Present",
+    "daysAbsent": "Days Absent",
+    "totalSalary": "Total Salary",
+    "totalAdvances": "Total Advances",
+    "finalSalary": "Final Salary"
+  },
+  "tabs": {
+    "dashboard": "Dashboard",
+    "pointage": "Attendance",
+    "reports": "Reports",
+    "employeesDashboard": "Employees Dashboard",
+    "pointageManagement": "Employees Attendance Management",
+    "employeesReports": "Employees Reports"
+  },
+  "form": {
+    "selectWeek": "Select Week",
+    "addAdvance": "Add Advance",
+    "addAdvanceButton": "Add Advance",
+    "addEmployees": "Add Employees",
+    "addButton": "Add",
+    "cancelButton": "Cancel",
+    "addMore": "Add More",
+    "employee": "Employee",
+    "selectEmployee": "Select an employee",
+    "amount": "Amount",
+    "enterAmount": "Enter amount",
+    "date": "Date",
+    "selectDate": "Select a date",
+    "name": "Name",
+    "employeeName": "Employee Name",
+    "role": "Role",
+    "enterRole": "Enter role",
+    "prix": "Price",
+    "enterPrix": "Enter price",
+    "phone": "Phone",
+    "enterPhone": "Enter phone (e.g., 06 00 00 00 00)",
+    "submitAttendance": "Submit Attendance",
+    "all": "All",
+    "selectedUsers": "Selected Users",
+    "selectEmployees": "Select Employees",
+    "selectEmployeesPlaceholder": "Please select employees",
+    "startDate": "Start Date",
+    "selectStartDate": "Select start date",
+    "endDate": "End Date",
+    "selectEndDate": "Select end date",
+    "fetchSalaries": "Fetch Salaries",
+    "from": "From",
+    "to": "To",
+    "total": "Total",
+    "print": "Print",
+    "deleteReport": "Delete"
+  }
+},
+  "articles": {
+    "title": "Manage Articles",
+    "addNew": "Add New Article",
+    "search": "Search Articles",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "projects": {
+    "title": "Manage Projects",
+    "addNew": "Add New Project",
+    "search": "Search Projects",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "reports": {
+    "title": "Manage Reports",
+    "addNew": "Add New Report",
+    "search": "Search Reports",
+    "view": "View",
+    "download": "Download"
+  },
+  "logout": {
+    "message": "You have been logged out.",
+    "redirect": "Redirecting to login..."
+  }
+}

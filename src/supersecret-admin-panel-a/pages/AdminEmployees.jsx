@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef  } from 'react';
 import { config } from '../../config';
+import { useTranslation } from 'react-i18next';
 import { 
   Tabs, Button, 
   Table, message,
@@ -48,13 +49,15 @@ const AdminEmployees = () => {
   const [rowsToDelete, setRowsToDelete] = useState([]);
   const [fetchingAll, setFetchingAll] = useState(null);
   const [selectEmpForSalaries, setSelectEmpForSalaries] = useState([]);
+  const [modifiedAttendance, setModifiedAttendance] = useState({});
+  const [submittedDates, setSubmittedDates] = useState([]);
+  const [editableDates, setEditableDates] = useState({});
   const options = [];
+  const { t } = useTranslation();
 
-  
   // For Printing
  
   const tableRefs = useRef({});
-
 
   const handlePrint = async (reportKey) => {
     if (!tableRefs.current[reportKey]) return;
@@ -66,212 +69,187 @@ const AdminEmployees = () => {
     let fileHandle = null;
 
     try {
-        if (window.showSaveFilePicker) {
-            fileHandle = await window.showSaveFilePicker({
-                suggestedName: `report_${reportKey}.pdf`,
-                types: [{ description: "PDF Files", accept: { "application/pdf": [".pdf"] } }],
-            });
-            writableStream = await fileHandle.createWritable();
-        }
-
-        // console.log("Generating PDF...");
-
-        const worker = new Worker(new URL("./pdfWorker.js", import.meta.url), { type: "module" });
-
-        worker.postMessage({ report, logoBase64: logo1 });
-
-        worker.onmessage = async (event) => {
-            const { pdfBlob } = event.data;
-
-            if (writableStream) {
-                const reader = pdfBlob.stream().getReader();
-                const writer = writableStream.getWriter();
-
-                async function writeStream() {
-                    let { done, value } = await reader.read();
-                    while (!done) {
-                        await writer.write(value);
-                        ({ done, value } = await reader.read());
-                    }
-                    await writer.close();
-                }
-
-                await writeStream();
-                // console.log("PDF saved successfully!");
-
-                // Show in the Downloads section by triggering an automatic download
-                const url = URL.createObjectURL(pdfBlob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `report_${reportKey}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } else {
-                // If showSaveFilePicker is not supported, use automatic download
-                const url = URL.createObjectURL(pdfBlob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `report_${reportKey}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                // console.log("PDF downloaded successfully!");
-            }
-        };
-
-        worker.onerror = (error) => {
-            console.error("Worker error:", error);
-        };
-    } catch (error) {
-        if (error.name === "AbortError") {
-            console.warn("User canceled the save operation.");
-        } else {
-            console.error("File saving failed", error);
-        }
-    }
-};
-  
-    // Load saved reports from localStorage on first render
-    useEffect(() => {
-      const savedReports = JSON.parse(localStorage.getItem("reports")) || [];
-      setReports(savedReports);
-    }, []);
-
- 
-
-    const fetchEmployees = useCallback(async () => {
-      if (attendanceData.length > 0) return;
-    
-      setPointageLoading(true);
-      try {
-        const response = await fetch(`${config.apiBase}${config.endpoints.fetchEmployees}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch employees');
-        }
-    
-        const employees = await response.json();
-        const initializedData = employees.map((employee) => ({
-          ...employee,
-          attendance: employee.attendance || {},
-        }));
-        setAttendanceData(initializedData);
-      } catch (error) {
-        message.error(error.message);
-      } finally {
-        setPointageLoading(false);
+      if (window.showSaveFilePicker) {
+        fileHandle = await window.showSaveFilePicker({
+          suggestedName: `report_${reportKey}.pdf`,
+          types: [{ description: "PDF Files", accept: { "application/pdf": [".pdf"] } }],
+        });
+        writableStream = await fileHandle.createWritable();
       }
-    }, [attendanceData.length]); 
-    
-    useEffect(() => {
-      fetchEmployees(); 
-    }, [fetchEmployees]);
-    
-    const fetchNewEmployees = async () => {
-  try {
-    const response = await fetch(`${config.apiBase}${config.endpoints.fetchNewEmployees}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch new employees');
+
+      const worker = new Worker(new URL("./pdfWorker.js", import.meta.url), { type: "module" });
+
+      worker.postMessage({ report, logoBase64: logo1 });
+
+      worker.onmessage = async (event) => {
+        const { pdfBlob } = event.data;
+
+        if (writableStream) {
+          const reader = pdfBlob.stream().getReader();
+          const writer = writableStream.getWriter();
+
+          async function writeStream() {
+            let { done, value } = await reader.read();
+            while (!done) {
+              await writer.write(value);
+              ({ done, value } = await reader.read());
+            }
+            await writer.close();
+          }
+
+          await writeStream();
+
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `report_${reportKey}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else {
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `report_${reportKey}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      };
+
+      worker.onerror = (error) => {
+        console.error("Worker error:", error);
+        message.error(t('employees.error.submissionFailed', { message: error.message }));
+      };
+    } catch (error) {
+      if (error.name === "AbortError") {
+        console.warn("User canceled the save operation.");
+      } else {
+        console.error("File saving failed", error);
+        message.error(t('employees.error.submissionFailed', { message: error.message }));
+      }
     }
+  };
 
-    const newEmployees = await response.json();
-    // console.log("neww:", newEmployees);
+  useEffect(() => {
+    const savedReports = JSON.parse(localStorage.getItem("reports")) || [];
+    setReports(savedReports);
+  }, []);
 
-    setAttendanceData((prevData) => {
-      const existingIds = new Set(prevData.map(emp => emp.employeeid));
-      
-      // Initialize attendance for new employees
-      const uniqueNewEmployees = newEmployees
-        .filter(emp => !existingIds.has(emp.employeeid))
-        .map(emp => ({
-          ...emp,
-          attendance: emp.attendance || {}, // Initialize attendance if missing
-        }));
+  const fetchEmployees = useCallback(async () => {
+    if (attendanceData.length > 0) return;
 
-      return [...prevData, ...uniqueNewEmployees];
-    });
+    setPointageLoading(true);
+    try {
+      const response = await fetch(`${config.apiBase}${config.endpoints.fetchEmployees}`);
+      if (!response.ok) {
+        throw new Error(t('employees.error.fetchEmployees'));
+      }
 
-  } catch (error) {
-    message.error(error.message);
-  }
-};
-
-for (let i = 0; i < attendanceData.length; i++) {
-  options.push({
-    label: attendanceData[i].name,
-    value: attendanceData[i].employeeid,
-  });
-}
-
-    
-const rowSelection = {
-  onChange: (selectedRowKeys, selectedRows) => {
-    setRowsToDelete(selectedRows);
-    // console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
-    if(selectedRowKeys.length >= 1){
-      setToDelete(true);
+      const employees = await response.json();
+      const initializedData = employees.map((employee) => ({
+        ...employee,
+        attendance: employee.attendance || {},
+      }));
+      setAttendanceData(initializedData);
+    } catch (error) {
+      message.error(t('employees.error.submissionFailed', { message: error.message }));
+    } finally {
+      setPointageLoading(false);
     }
-    else if(selectedRowKeys.length === 0){
-      setToDelete(false);
+  }, [attendanceData.length, t]);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  const fetchNewEmployees = async () => {
+    try {
+      const response = await fetch(`${config.apiBase}${config.endpoints.fetchNewEmployees}`);
+      if (!response.ok) {
+        throw new Error(t('employees.error.fetchNewEmployees'));
+      }
+
+      const newEmployees = await response.json();
+
+      setAttendanceData((prevData) => {
+        const existingIds = new Set(prevData.map(emp => emp.employeeid));
+
+        const uniqueNewEmployees = newEmployees
+          .filter(emp => !existingIds.has(emp.employeeid))
+          .map(emp => ({
+            ...emp,
+            attendance: emp.attendance || {},
+          }));
+
+        return [...prevData, ...uniqueNewEmployees];
+      });
+    } catch (error) {
+      message.error(t('employees.error.submissionFailed', { message: error.message }));
     }
+  };
 
-  },
-  
-};
+  const rowSelection = {
+    onChange: (selectedRowKeys, selectedRows) => {
+      setRowsToDelete(selectedRows);
+      if (selectedRowKeys.length >= 1) {
+        setToDelete(true);
+      } else if (selectedRowKeys.length === 0) {
+        setToDelete(false);
+      }
+    },
+  };
 
-const onDeleteEmp = async () => {
-  setAttendanceData(prevData =>
-    prevData.filter(row => !rowsToDelete.some(deletedRow => deletedRow.employeeid === row.employeeid))
-  );
-  try {
-    const response = await fetch(`${config.apiBase}${config.endpoints.deleteEmployees}`,{
+  const onDeleteEmp = async () => {
+    setAttendanceData(prevData =>
+      prevData.filter(row => !rowsToDelete.some(deletedRow => deletedRow.employeeid === row.employeeid))
+    );
+    try {
+      const response = await fetch(`${config.apiBase}${config.endpoints.deleteEmployees}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(rowsToDelete),
       });
 
-    if (!response.ok) {
-      const errorResponse = await response.json();
-      throw new Error(errorResponse.error || 'Failed to delete');
+      if (!response.ok) {
+        const errorResponse = await response.json();
+        throw new Error(errorResponse.error || t('employees.error.delete'));
+      }
+
+      const result = await response.json();
+      message.success(result.message || t('employees.success.delete'));
+    } catch (error) {
+      message.error(t('employees.error.submissionFailed', { message: error.message }));
     }
-    const result = await response.json();
-    message.success(result.message || 'Employee(s) deleted successfully');
-  } catch (error) {
-    message.error(`Submission failed: ${error.message}`)
-  }
+  };
 
-};
-const onChangeFetching = (e) => {
-  const isFetchingAll = e.target.value === "all";
-  // console.log(`Radio checked: ${isFetchingAll}`);
+  const onChangeFetching = (e) => {
+    const isFetchingAll = e.target.value === "all";
+    setFetchingAll(isFetchingAll);
+    if (isFetchingAll) {
+      setSelectEmpForSalaries([]);
+    }
 
-  setFetchingAll(isFetchingAll);
-  if (isFetchingAll) {
-    setSelectEmpForSalaries([]); // Clear selected employees when switching to "All"
-  }
-  
-  localStorage.setItem("fetchingAll", JSON.stringify(isFetchingAll));
-  localStorage.removeItem("selectedEmployees"); // Remove stored employees
-};
+    localStorage.setItem("fetchingAll", JSON.stringify(isFetchingAll));
+    localStorage.removeItem("selectedEmployees");
+  };
 
-// Reset fetchingAll to "All" and clear selected employees on reload
-useEffect(() => {
-  setFetchingAll(true); 
-  setSelectEmpForSalaries([]);
-  localStorage.removeItem("fetchingAll");
-  localStorage.removeItem("selectedEmployees");
-}, []);
+  useEffect(() => {
+    setFetchingAll(true);
+    setSelectEmpForSalaries([]);
+    localStorage.removeItem("fetchingAll");
+    localStorage.removeItem("selectedEmployees");
+  }, []);
 
-const fetchSalariesForEmp = (value) => {
-  setSelectEmpForSalaries(value);
-  // console.log(`selected ${selectEmpForSalaries}`);
-};
+  const fetchSalariesForEmp = (value) => {
+    setSelectEmpForSalaries(value);
+  };
 
   const handleTabChange = (key) => {
     setActiveTab(key);
-    sessionStorage.setItem("activeTab", key); 
+    sessionStorage.setItem("activeTab", key);
   };
 
   useEffect(() => {
@@ -279,10 +257,8 @@ const fetchSalariesForEmp = (value) => {
       setLoading(true);
       fetchEmployees().finally(() => setLoading(false));
     }
- 
   }, [attendanceData.length, fetchEmployees, activeTab]);
 
-  // THis effect for show the active collumn without refreshing
   useEffect(() => {
     const now = moment();
     const nextDayStart = moment().add(1, 'day').startOf('day');
@@ -295,9 +271,6 @@ const fetchSalariesForEmp = (value) => {
     return () => clearTimeout(timeout);
   }, [currentWeek]);
 
-  const [modifiedAttendance, setModifiedAttendance] = useState({});
-
-  // Function for updating the status (present, absent of each )
   const attendanceUpdate = (employeeId, date, status) => {
     setAttendanceData((prevData) =>
       prevData.map((employee) =>
@@ -306,28 +279,28 @@ const fetchSalariesForEmp = (value) => {
           : employee
       )
     );
-    // Track only modified records
-  setModifiedAttendance((prev) => ({
-    ...prev,
-    [`${employeeId}-${date}`]: { EmployeeID: employeeId, Date: date, Status: status === "present" ? 1 : 0 },
-  }));
+
+    setModifiedAttendance((prev) => ({
+      ...prev,
+      [`${employeeId}-${date}`]: { EmployeeID: employeeId, Date: date, Status: status === "present" ? 1 : 0 },
+    }));
   };
 
   const handleWeekChange = (date) => {
     if (date) {
-      setCurrentWeek(date.startOf('week')); 
+      setCurrentWeek(date.startOf('week'));
     }
   };
-  // Function for Submit Employee's Attendance
+
   const handleSubmitAttendance = async () => {
-    const currentDay = moment().format('YYYY-MM-DD'); 
+    const currentDay = moment().format('YYYY-MM-DD');
     const payload = attendanceData
       .map((employee) => ({
         EmployeeID: employee.employeeid,
         Date: currentDay,
         Status: employee.attendance[currentDay] === 'present' ? 1 : 0,
       }))
-      .filter((entry) => entry.Status !== undefined); // Filter out rows with no data for the current day
+      .filter((entry) => entry.Status !== undefined);
 
     try {
       const response = await fetch(`${config.apiBase}${config.endpoints.submitPointage}`, {
@@ -338,14 +311,14 @@ const fetchSalariesForEmp = (value) => {
 
       if (!response.ok) {
         const errorResponse = await response.json();
-        throw new Error(errorResponse.error || 'Failed to save attendance');
+        throw new Error(errorResponse.error || t('employees.error.saveAttendance'));
       }
 
       const result = await response.json();
-      message.success(result.message || 'Attendance successfully submitted!');
-      fetchSubmittedDates(); 
+      message.success(result.message || t('employees.success.submitAttendance'));
+      fetchSubmittedDates();
     } catch (error) {
-      message.error(`Submission failed: ${error.message}`);
+      message.error(t('employees.error.submissionFailed', { message: error.message }));
     }
   };
 
@@ -353,30 +326,27 @@ const fetchSalariesForEmp = (value) => {
     try {
       const employees = values.employees.map(emp => ({
         name: emp.name,
-        job: emp.role, 
+        job: emp.role,
         prix: parseFloat(emp.prix).toFixed(2),
         phonenumber: emp.phone && emp.phone.trim() !== '' ? emp.phone : null,
       }));
-      // console.log("Payload being sent to the server:", employees);
       const response = await fetch(`${config.apiBase}${config.endpoints.addEmployees}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(employees)
       });
-  
+
       if (!response.ok) throw new Error('Failed to save employees');
-  
+
       setOpen(false);
-      form.resetFields();    
-      message.success('Employees successfully added!');
+      form.resetFields();
+      message.success(t('employees.successAdd'));
       fetchNewEmployees();
     } catch (error) {
       console.error(error);
-      message.error(`Submission failed: ${error.message}`);
+      message.error(t('employees.errorAdd', { message: error.message }));
     }
   };
-
-  const [editableDates, setEditableDates] = useState({});
 
   const updateAttendance = useCallback(
     async (selectedDate) => {
@@ -384,27 +354,27 @@ const fetchSalariesForEmp = (value) => {
         if (typeof selectedDate !== "string") {
           throw new Error(`selectedDate must be a string, got: ${typeof selectedDate} - Value: ${JSON.stringify(selectedDate)}`);
         }
-  
+
         const payload = attendanceData.map((employee) => ({
           EmployeeID: employee.employeeid,
-          Date: selectedDate,           
-          Status: employee.attendance[selectedDate] === "present" ? 1 : 0, 
+          Date: selectedDate,
+          Status: employee.attendance[selectedDate] === "present" ? 1 : 0,
         }));
-  
+
         const response = await fetch(`${config.apiBase}${config.endpoints.updatePointage}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-  
+
         if (!response.ok) {
           const errorResponse = await response.json();
           throw new Error(errorResponse.error || "Failed to update attendance");
         }
-  
+
         const result = await response.json();
-        message.success(result.message || `Attendance successfully updated for ${selectedDate}`);
-  
+        message.success(t('employees.successUpdateAttendance', { date: selectedDate }));
+
         setModifiedAttendance((prev) => {
           const newModified = { ...prev };
           Object.keys(newModified).forEach((key) => {
@@ -415,12 +385,11 @@ const fetchSalariesForEmp = (value) => {
           return newModified;
         });
       } catch (error) {
-        message.error(`Update failed: ${error.message}`);
+        message.error(t('employees.errorUpdateAttendance', { message: error.message }));
       }
     },
     [attendanceData, setModifiedAttendance]
   );
-  
 
   const toggleEditMode = useCallback((dateKey) => {
     setEditableDates((prev) => {
@@ -428,7 +397,6 @@ const fetchSalariesForEmp = (value) => {
       return updatedDates;
     });
   }, []);
-  
 
   const handleConfirmEdit = useCallback(
     (dateKey) => {
@@ -437,140 +405,163 @@ const fetchSalariesForEmp = (value) => {
     },
     [updateAttendance, toggleEditMode]
   );
-    const handleCancelEdit = useCallback(
-      (dateKey) => {
-        toggleEditMode(dateKey); 
-      },
-      [toggleEditMode]
-    );
 
-    const [submittedDates, setSubmittedDates] = useState([]);
-    const fetchSubmittedDates = async () => {
-      try {
-        const response = await fetch(`${config.apiBase}${config.endpoints.getSubmittedDates}`);
-        if (!response.ok) throw new Error('Failed to fetch submitted dates');
-        const dates = await response.json();
-        setSubmittedDates(dates);
-      } catch (error) {
-        console.error('Error fetching submitted dates:', error);
-      }
-    };
-    
-    useEffect(() => {
-      fetchSubmittedDates();
-    }, []);
-    
- 
-    const columns = useMemo(
-      () => [
-        { title: 'Name', dataIndex: 'name', key: 'name' },
-        ...Array.from({ length: 7 }, (_, i) => {
-          const dayDate = currentWeek.clone().add(i, 'days');
-          const dateKey = dayDate.format('YYYY-MM-DD');
-          const isCurrentDay = dayDate.isSame(moment(), 'day');
-          const currentDay = moment(); 
-          const isBeforeCurrentDay = dayDate.isBefore(currentDay, 'day');
-          const isSubmitted = submittedDates.includes(dateKey); 
-          const isEditing = editableDates[dateKey];
-          const isDisabled = (!isEditing && (!isBeforeCurrentDay || !isCurrentDay));
- 
-          return {
-            title: (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  backgroundColor: isCurrentDay ? '#e6f7ff' : 'transparent',
-                  border: isCurrentDay ? '1px solid #1890ff' : 'none',
-                  borderRadius: '4px',
-                  padding: '4px',
-                }}
-              >
-                <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: isCurrentDay ? 'bold' : 'normal' }}>
-                  {dayDate.format('dddd')}
-                  <br />
-                  {dayDate.format('(YYYY-MM-DD)')}
-                </div>
-                {(isBeforeCurrentDay || isSubmitted) && (
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    {isEditing ? (
-                      <>
-                        <Button
-                          type="text"
-                          icon={<CheckOutlined style={{ color: 'green', fontSize: '14px' }} />}
-                          onClick={() => handleConfirmEdit(dateKey)}
-                        />
-                        <Button
-                          type="text"
-                          icon={<CloseOutlined style={{ color: 'red', fontSize: '14px' }} />}
-                          onClick={() => handleCancelEdit(dateKey)}
-                        />
-                      </>
-                    ) : (
+  const handleCancelEdit = useCallback(
+    (dateKey) => {
+      toggleEditMode(dateKey);
+    },
+    [toggleEditMode]
+  );
+
+  const fetchSubmittedDates = async () => {
+    try {
+      const response = await fetch(`${config.apiBase}${config.endpoints.getSubmittedDates}`);
+      if (!response.ok) throw new Error('Failed to fetch submitted dates');
+      const dates = await response.json();
+      setSubmittedDates(dates);
+    } catch (error) {
+      console.error('Error fetching submitted dates:', error);
+      message.error(t('employees.error.submissionFailed', { message: error.message }));
+    }
+  };
+
+  useEffect(() => {
+    fetchSubmittedDates();
+  }, []);
+
+  const columns = useMemo(
+    () => [
+      { title: t('employees.nameColumn'), dataIndex: 'name', key: 'name' },
+      ...Array.from({ length: 7 }, (_, i) => {
+        const dayDate = currentWeek.clone().add(i, 'days');
+        const dateKey = dayDate.format('YYYY-MM-DD');
+        const isCurrentDay = dayDate.isSame(moment(), 'day');
+        const currentDay = moment();
+        const isBeforeCurrentDay = dayDate.isBefore(currentDay, 'day');
+        const isSubmitted = submittedDates.includes(dateKey);
+        const isEditing = editableDates[dateKey];
+        const isDisabled = (!isEditing && (!isBeforeCurrentDay || !isCurrentDay));
+
+        return {
+          title: (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: isCurrentDay ? '#e6f7ff' : 'transparent',
+                border: isCurrentDay ? '1px solid #1890ff' : 'none',
+                borderRadius: '4px',
+                padding: '4px',
+              }}
+            >
+              <div style={{ textAlign: 'center', fontSize: '12px', fontWeight: isCurrentDay ? 'bold' : 'normal' }}>
+                {t(`employees.days.${dayDate.format('dddd').toLowerCase()}`)}
+                <br />
+                {dayDate.format('(YYYY-MM-DD)')}
+              </div>
+              {(isBeforeCurrentDay || isSubmitted) && (
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  {isEditing ? (
+                    <>
                       <Button
                         type="text"
-                        icon={<EditOutlined style={{ fontSize: '14px' }} />}
-                        onClick={() => toggleEditMode(dateKey)} // Trigger edit mode toggle
+                        icon={<CheckOutlined style={{ color: 'green', fontSize: '14px' }} />}
+                        onClick={() => handleConfirmEdit(dateKey)}
+                        aria-label={t('employees.confirm')}
                       />
-                    )}
-                  </div>
-                )}
-              </div>
-            ),
-            dataIndex: dateKey,
-            render: (_, record) => {
-              const attendanceValue = record.attendance[dateKey] === 'present';
-            
-              return (
-                <Switch
-                  checked={attendanceValue}
-                  onChange={(checked) => attendanceUpdate(record.employeeid, dateKey, checked ? 'present' : 'absent')}
-                  disabled={isDisabled}
-                  checkedChildren="Present"
-                  unCheckedChildren="Absent"
-                />
-              );
-            },
-          };
-        }),
-      ],
-      [currentWeek, submittedDates, editableDates, toggleEditMode, handleConfirmEdit, handleCancelEdit] // Recalculate when state changes
-    );
-    
-const salariesColumns = useMemo (()=>
-[
-  { title: 'Name', dataIndex: 'name', key: 'name', render : text => <span style={{color:'#5D8AA8', fontWeight:'bold'}}> {text}</span> },
-  {title: 'Job', dataIndex:'job', key:'job'},
-  {title: 'Prix', dataIndex:'prix', key:'prix'},
-  {title: 'Days Present', dataIndex:'total_days_present', key:'total_days_present',
-    render: presentTag => ( <span><Tag color='green' key={presentTag}>{presentTag}</Tag></span>)
-  },
-  {title: 'Days Absent', dataIndex:'total_days_absent', key:'total_days_absent',
-    render: absentTag => ( <span><Tag color='red' key={absentTag}>{absentTag}</Tag></span>)
-  },
-  {title: 'Total Salary', dataIndex:'total_salary', key:'total_salary',
-    render: (totalSalary) => (
-      <span>{totalSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</span>
-    ),
-  },
-  {title: 'Total Advances', dataIndex:'total_advances', key:'total_advances',
-    render: (totalAdvances) => (
-      <span>{totalAdvances.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</span>
-    ),
-  },
-  {title: 'Final Salary', dataIndex:'final_salary', key:'final_salary',
-    render: (finalSalary) => (
-      <Tag color="blue" key={finalSalary}>
-        {finalSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
-      </Tag>
-    ),
-  },
-], []);
+                      <Button
+                        type="text"
+                        icon={<CloseOutlined style={{ color: 'red', fontSize: '14px' }} />}
+                        onClick={() => handleCancelEdit(dateKey)}
+                        aria-label={t('employees.cancel')}
+                      />
+                    </>
+                  ) : (
+                    <Button
+                      type="text"
+                      icon={<EditOutlined style={{ fontSize: '14px' }} />}
+                      onClick={() => toggleEditMode(dateKey)}
+                      aria-label={t('employees.edit')}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          ),
+          dataIndex: dateKey,
+          render: (_, record) => {
+            const attendanceValue = record.attendance[dateKey] === 'present';
 
-  
-  // Function For Giving Advances
+            return (
+              <Switch
+                checked={attendanceValue}
+                onChange={(checked) => attendanceUpdate(record.employeeid, dateKey, checked ? 'present' : 'absent')}
+                disabled={isDisabled}
+                checkedChildren={t('employees.present')}
+                unCheckedChildren={t('employees.absent')}
+              />
+            );
+          },
+        };
+      }),
+    ],
+    [currentWeek, submittedDates, editableDates, toggleEditMode, handleConfirmEdit, handleCancelEdit, t]
+  );
+  const salariesColumns = useMemo(() => [
+    {
+      title: t('employees.salariesColumns.name'),
+      dataIndex: 'name',
+      key: 'name',
+      render: text => <span style={{ color: '#5D8AA8', fontWeight: 'bold' }}>{text}</span>
+    },
+    { title: t('employees.salariesColumns.job'), dataIndex: 'job', key: 'job' },
+    { title: t('employees.salariesColumns.prix'), dataIndex: 'prix', key: 'prix' },
+    {
+      title: t('employees.salariesColumns.daysPresent'),
+      dataIndex: 'total_days_present',
+      key: 'total_days_present',
+      render: presentTag => (
+        <span><Tag color='green' key={presentTag}>{presentTag}</Tag></span>
+      )
+    },
+    {
+      title: t('employees.salariesColumns.daysAbsent'),
+      dataIndex: 'total_days_absent',
+      key: 'total_days_absent',
+      render: absentTag => (
+        <span><Tag color='red' key={absentTag}>{absentTag}</Tag></span>
+      )
+    },
+    {
+      title: t('employees.salariesColumns.totalSalary'),
+      dataIndex: 'total_salary',
+      key: 'total_salary',
+      render: (totalSalary) => (
+        <span>{totalSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</span>
+      ),
+    },
+    {
+      title: t('employees.salariesColumns.totalAdvances'),
+      dataIndex: 'total_advances',
+      key: 'total_advances',
+      render: (totalAdvances) => (
+        <span>{totalAdvances.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</span>
+      ),
+    },
+    {
+      title: t('employees.salariesColumns.finalSalary'),
+      dataIndex: 'final_salary',
+      key: 'final_salary',
+      render: (finalSalary) => (
+        <Tag color="blue" key={finalSalary}>
+          {finalSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}
+        </Tag>
+      ),
+    },
+  ], [t]);
+
   const handleAdvanceSubmit = async (values) => {
     try {
       const payload = values.advances.map(adv => ({
@@ -578,31 +569,30 @@ const salariesColumns = useMemo (()=>
         Amount: parseFloat(adv.amount),
         Date: adv.date.format('YYYY-MM-DD'),
       }));
-  
+
       const response = await fetch(`${config.apiBase}${config.endpoints.addAdvances}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-  
+
       if (!response.ok) {
         throw new Error('Failed to save advance');
       }
-  
+
       const result = await response.json();
-      
-      setAdvanceOpen(false); 
+
+      setAdvanceOpen(false);
       advanceForm.resetFields();
-      message.success(result.message || 'Advances successfully added!'); 
+      message.success(result.message || t('employees.success.addAdvance'));
     } catch (error) {
-      message.error(`Submission failed: ${error.message}`);
+      message.error(t('employees.error.submissionFailed', { message: error.message }));
     }
   };
 
-  // Function for making rapports of employees for a range of time
   const fetchSalaries = async () => {
     if (!startDate || !endDate) {
-      message.error("Please select both start and end dates.");
+      message.error(t('employees.error.selectDates'));
       return;
     }
 
@@ -611,37 +601,35 @@ const salariesColumns = useMemo (()=>
       let url = `${config.apiBase}${config.endpoints.fetchSalaries}?start_date=${startDate.format("YYYY-MM-DD")}&end_date=${endDate.format("YYYY-MM-DD")}`;
 
       if (!fetchingAll && selectEmpForSalaries.length > 0) {
-        url += `&employee_ids=${selectEmpForSalaries.join(",")}`; // Pass selected employees
+        url += `&employee_ids=${selectEmpForSalaries.join(",")}`;
       }
-    
+
       const response = await fetch(url);
-      
 
       if (!response.ok) {
-        throw new Error("Failed to fetch data.");
+        throw new Error(t('employees.error.fetchSalaries'));
       }
 
       const result = await response.json();
       const reportKey = fetchingAll
-      ? `all_${startDate.format("YYYY-MM-DD")}_${endDate.format("YYYY-MM-DD")}`
-      : `emp_${selectEmpForSalaries.join("_")}_${startDate.format("YYYY-MM-DD")}_${endDate.format("YYYY-MM-DD")}`;
+        ? `all_${startDate.format("YYYY-MM-DD")}_${endDate.format("YYYY-MM-DD")}`
+        : `emp_${selectEmpForSalaries.join("_")}_${startDate.format("YYYY-MM-DD")}_${endDate.format("YYYY-MM-DD")}`;
 
-    const newReport = {
-      key: reportKey,
-      startDate: startDate.format("YYYY-MM-DD"),
-      endDate: endDate.format("YYYY-MM-DD"),
-      employeeIds: fetchingAll ? ["all"] : selectEmpForSalaries,
-      data: result,
-    };
+      const newReport = {
+        key: reportKey,
+        startDate: startDate.format("YYYY-MM-DD"),
+        endDate: endDate.format("YYYY-MM-DD"),
+        employeeIds: fetchingAll ? ["all"] : selectEmpForSalaries,
+        data: result,
+      };
 
-      // Save new report to localStorage
       const updatedReports = [newReport, ...reports];
       setReports(updatedReports);
       localStorage.setItem("reports", JSON.stringify(updatedReports));
 
       setActiveKey(newReport.key);
     } catch (err) {
-      message.error(err.message);
+      message.error(t('employees.error.submissionFailed', { message: err.message }));
     } finally {
       setLoading(false);
     }
@@ -651,254 +639,18 @@ const salariesColumns = useMemo (()=>
     const updatedReports = reports.filter(report => report.key !== key);
     setReports(updatedReports);
     localStorage.setItem("reports", JSON.stringify(updatedReports));
+    message.success(t('employees.success.deleteReport'));
   };
-  
+
   const tabsItems = [
-    { key: '1', label: 'Dashboard', children: <h2>Employees Dashboard</h2> },
     {
-      key: '2',
-      label: 'Pointage',
-      children: (
-        <>
-          <div className="p-4" style={{ padding: "20px" }}>
-            {/* Centered Heading */}
-              <h2
-                className="text-xl font-semibold mb-4"
-                style={{
-                  textAlign: "center",
-                  fontSize: "24px",
-                  fontWeight: "bold",
-                  marginBottom: "20px",
-                }}
-              >Employees Pointage Management</h2>
-             
-            <div>
-              {/* For Add advances - START */}
-              <div style={{display:'flex', justifyContent:'right', gap:'25px', marginBottom:'10px'}}>
-
-                <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-                    <DatePicker
-                      picker="week"
-                      value={currentWeek}
-                      onChange={handleWeekChange}
-                      format="YYYY-[Week]WW"
-                      style={{ width: '200px' }}
-                    />
-                </div>
-                <div>
-                  <Button type="primary" onClick={() => setAdvanceOpen(true)}>
-                    <PlusCircleOutlined  style={{ fontSize: '20px' }} />
-                    <DollarOutlined  style={{ fontSize: '20px' }} />
-                  </Button>
-                </div>
-                  <Modal
-                      open={advanceOpen}
-                      title="Add Advance"
-                      okText="Add Advance"
-                      cancelText="Cancel"
-                      onCancel={() => setAdvanceOpen(false)}
-                      onOk={() => advanceForm.submit()}
-                      width={700}
-                    >
-                      <Form form={advanceForm} layout="vertical" onFinish={handleAdvanceSubmit} style={{width:'100%'}}>
-                        {/* Select Employee */}
-                        <Form.List name='advances'>
-                          {(fields, {add, remove}) => (
-                            <>
-                            {fields.map(({ key, name, ...restField }) => (
-                              
-                              <Space
-                              key={key}
-                              align='baseline'
-                              style={{display:'flex', width:'100%', gap:'16px'}}
-                              >
-                                <Form.Item
-                                {...restField}
-                                  label="Employee"
-                                  name={[name, 'employeeid']}
-                                  rules={[{ required: true, message: 'Please select an employee' }]}
-                                  style={{flex:1}}
-                                >
-                                    <Select placeholder="Select an employee">
-                                      {attendanceData.map((employee) => (
-                                        <Select.Option key={employee.employeeid} value={employee.employeeid}>
-                                          {employee.name}
-                                        </Select.Option>
-                                      ))}
-                                    </Select>
-                                  </Form.Item>
-
-                                  {/* Advance Amount */}
-                                  <Form.Item
-                                    {...restField}
-                                    label="Amount"
-                                    name={[name, 'amount']}
-                                    rules={[
-                                      { required: true, message: 'Please enter the advance amount' },
-                                      { type: 'number', min: 1, message: 'Amount must be greater than 0', transform: (value) => parseFloat(value) },
-                                    ]}
-                                    style={{flex:1}}
-                                  >
-                                    <Input type="number" placeholder="Enter amount" />
-                                  </Form.Item>
-
-                                  {/* Date */}
-                                  <Form.Item
-                                  {...restField}
-                                    label="Date"
-                                    name={[name, 'date']}
-                                    rules={[{ required: true, message: 'Please select a date' }]}
-                                    style={{flex:1}}
-                                  >
-                                    <DatePicker
-                                      format="YYYY-MM-DD"
-                                      disabledDate={(current) => current && current > dayjs().endOf('day')}
-                                    />
-                                  </Form.Item>
-                                  <Button onClick={() => remove(name)} danger>
-                                  <DeleteOutlined />
-                                </Button>
-                              </Space>
-                            ))}
-                            <Button type="dashed" onClick={() => add()} block icon={<PlusCircleOutlined />}>
-                              Add More
-                            </Button>
-                            </>
-                          )}
-                        </Form.List>
-                      
-                      </Form>
-                    </Modal>
-                    {/* For Add advances - END */}
-
-                    {/* For Add employees - START */}
-                    <div>
-                      <Button type="primary" onClick={() => setOpen(true)}>
-                        <PlusCircleOutlined style={{ fontSize: '20px' }} />
-                        <UserOutlined style={{ fontSize: '20px' }}/>
-                      </Button>
-                    </div>
-                  </div>
-                  <Modal
-                    open={open}
-                    title="Add Employees"
-                    okText="Add"
-                    cancelText="Cancel"
-                    onCancel={() => setOpen(false)}
-                    onOk={() => form.submit()}
-                    width={800}
-                  >
-                    <Form form={form} layout="vertical" onFinish={addEmployees} style={{ width: '100%' }}>
-                    <Form.List name="employees">
-                        {(fields, { add, remove }) => (
-                          <>
-                            {fields.map(({ key, name, ...restField }) => (
-                              <Space
-                                key={key}
-                                align="baseline"
-                                style={{ display: 'flex', width: '100%', gap: '16px' }}
-                              >
-                                {/* Name Field */}
-                                <Form.Item
-                                  {...restField}
-                                  name={[name, 'name']}
-                                  label="Name"
-                                  rules={[{ required: true, message: "'Name' is required" }]}
-                                  style={{ flex: 1 }}
-                                >
-                                  <Input placeholder="Employee Name" />
-                                </Form.Item>
-
-                                {/* Role Field */}
-                                <Form.Item
-                                  {...restField}
-                                  name={[name, 'role']}
-                                  label="Role"
-                                  rules={[{ required: true, message: "'Role' is required" }]}
-                                  style={{ flex: 1 }}
-                                >
-                                  <Input placeholder="Role" />
-                                </Form.Item>
-
-                                {/* Prix Field */}
-                                <Form.Item
-                                  {...restField}
-                                  name={[name, 'prix']}
-                                  label="Prix"
-                                  rules={[{ required: true, message: "'Prix' is required" }]}
-                                  style={{ flex: 1 }}
-                                >
-                                  <Input type="number" placeholder="Prix" />
-                                </Form.Item>
-
-                                {/* Phone Field */}
-                                <Form.Item
-                                  {...restField}
-                                  name={[name, 'phone']}
-                                  label="Phone"
-                                  style={{ flex: 1 }}
-                                >
-                                  <NumericFormat
-                                    format="## ## ## ## ##"
-                                    customInput={Input}
-                                    placeholder="06 00 00 00 00"
-                                  />
-                                </Form.Item>
-
-                                {/* Remove Button */}
-                                <Button onClick={() => remove(name)} danger>
-                                  <DeleteOutlined />
-                                </Button>
-                              </Space>
-                            ))}
-
-                            {/* Add More Button */}
-                            <Button type="dashed" onClick={() => add()} block icon={<PlusCircleOutlined />}>
-                              Add More
-                            </Button>
-                          </>
-                        )}
-                      </Form.List>
-                    </Form>
-                  </Modal>
-                  {/* For Add employees - END */}
-                        
-                  {pointageLoading ? (
-                      <Skeleton active />
-                    ) : (
-                      <Table
-                        rowSelection={rowSelection}
-                        dataSource={attendanceData}
-                        columns={columns}
-                        rowKey="employeeid"
-                        pagination={{ pageSize: 10 }}
-                        bordered
-                      />
-                    )}
-                   <div style={{ display: "flex", justifyContent: "right", gap: "20px", marginTop:'20px'}}>
-                      {toDelete ? (
-                        <>
-                        <Button color='danger' variant="outlined" onClick={onDeleteEmp}>delete</Button>
-                        </>
-                      ):(
-                          <>
-                          </>
-                      )}
-                      <Button color="green" variant="outlined" onClick={handleSubmitAttendance}>
-                        <SendOutlined />
-                      </Button>
-                   
-                    </div>
-                  </div>
-                
-                </div>
-                
-              </>
-      ),
+      key: '1',
+      label: t('employees.tabs.dashboard'),
+      children: <h2>{t('employees.tabs.employeesDashboard')}</h2>
     },
     {
-      key: "3",
-      label: "Rapports",
+      key: '2',
+      label: t('employees.tabs.pointage'),
       children: (
         <>
           <div className="p-4" style={{ padding: "20px" }}>
@@ -911,251 +663,459 @@ const salariesColumns = useMemo (()=>
                 marginBottom: "20px",
               }}
             >
-              Employees Reports
+              {t('employees.tabs.pointageManagement')}
             </h2>
-              
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'right', gap: '25px', marginBottom: '10px' }}>
+                <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+                  <DatePicker
+                    picker="week"
+                    value={currentWeek}
+                    onChange={handleWeekChange}
+                    format="YYYY-[Week]WW"
+                    style={{ width: '200px' }}
+                    placeholder={t('employees.form.selectWeek')}
+                  />
+                </div>
+                <div>
+                  <Button type="primary" onClick={() => setAdvanceOpen(true)}>
+                    <PlusCircleOutlined style={{ fontSize: '20px' }} />
+                    <DollarOutlined style={{ fontSize: '20px' }} />
+                  </Button>
+                </div>
+                <Modal
+                  open={advanceOpen}
+                  title={t('employees.form.addAdvance')}
+                  okText={t('employees.form.addAdvanceButton')}
+                  cancelText={t('employees.form.cancelButton')}
+                  onCancel={() => setAdvanceOpen(false)}
+                  onOk={() => advanceForm.submit()}
+                  width={700}
+                >
+                  <Form form={advanceForm} layout="vertical" onFinish={handleAdvanceSubmit} style={{ width: '100%' }}>
+                    <Form.List name='advances'>
+                      {(fields, { add, remove }) => (
+                        <>
+                          {fields.map(({ key, name, ...restField }) => (
+                            <Space
+                              key={key}
+                              align='baseline'
+                              style={{ display: 'flex', width: '100%', gap: '16px' }}
+                            >
+                              <Form.Item
+                                {...restField}
+                                label={t('employees.form.employee')}
+                                name={[name, 'employeeid']}
+                                rules={[{ required: true, message: t('employees.form.selectEmployee') }]}
+                                style={{ flex: 1 }}
+                              >
+                                <Select placeholder={t('employees.form.selectEmployee')}>
+                                  {attendanceData.map((employee) => (
+                                    <Select.Option key={employee.employeeid} value={employee.employeeid}>
+                                      {employee.name}
+                                    </Select.Option>
+                                  ))}
+                                </Select>
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                label={t('employees.form.amount')}
+                                name={[name, 'amount']}
+                                rules={[
+                                  { required: true, message: t('employees.form.enterAmount') },
+                                  { type: 'number', min: 1, message: 'Amount must be greater than 0', transform: (value) => parseFloat(value) },
+                                ]}
+                                style={{ flex: 1 }}
+                              >
+                                <Input type="number" placeholder={t('employees.form.enterAmount')} />
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                label={t('employees.form.date')}
+                                name={[name, 'date']}
+                                rules={[{ required: true, message: t('employees.form.selectDate') }]}
+                                style={{ flex: 1 }}
+                              >
+                                <DatePicker
+                                  format="YYYY-MM-DD"
+                                  disabledDate={(current) => current && current > dayjs().endOf('day')}
+                                />
+                              </Form.Item>
+                              <Button onClick={() => remove(name)} danger>
+                                <DeleteOutlined />
+                              </Button>
+                            </Space>
+                          ))}
+                          <Button type="dashed" onClick={() => add()} block icon={<PlusCircleOutlined />}>
+                            {t('employees.form.addMore')}
+                          </Button>
+                        </>
+                      )}
+                    </Form.List>
+                  </Form>
+                </Modal>
+
+                <div>
+                  <Button type="primary" onClick={() => setOpen(true)}>
+                    <PlusCircleOutlined style={{ fontSize: '20px' }} />
+                    <UserOutlined style={{ fontSize: '20px' }} />
+                  </Button>
+                </div>
+              </div>
+              <Modal
+                open={open}
+                title={t('employees.form.addEmployees')}
+                okText={t('employees.form.addButton')}
+                cancelText={t('employees.form.cancelButton')}
+                onCancel={() => setOpen(false)}
+                onOk={() => form.submit()}
+                width={800}
+              >
+                <Form form={form} layout="vertical" onFinish={addEmployees} style={{ width: '100%' }}>
+                  <Form.List name="employees">
+                    {(fields, { add, remove }) => (
+                      <>
+                        {fields.map(({ key, name, ...restField }) => (
+                          <Space
+                            key={key}
+                            align="baseline"
+                            style={{ display: 'flex', width: '100%', gap: '16px' }}
+                          >
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'name']}
+                              label={t('employees.form.name')}
+                              rules={[{ required: true, message: t('employees.form.employeeName') }]}
+                              style={{ flex: 1 }}
+                            >
+                              <Input placeholder={t('employees.form.employeeName')} />
+                            </Form.Item>
+
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'role']}
+                              label={t('employees.form.role')}
+                              rules={[{ required: true, message: t('employees.form.enterRole') }]}
+                              style={{ flex: 1 }}
+                            >
+                              <Input placeholder={t('employees.form.enterRole')} />
+                            </Form.Item>
+
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'prix']}
+                              label={t('employees.salariesColumns.prix')}
+                              rules={[{ required: true, message: t('employees.form.enterPrix') }]}
+                              style={{ flex: 1 }}
+                            >
+                              <Input type="number" placeholder={t('employees.form.enterPrix')} />
+                            </Form.Item>
+
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'phone']}
+                              label={t('employees.form.phone')}
+                              style={{ flex: 1 }}
+                            >
+                              <NumericFormat
+                                format="## ## ## ## ##"
+                                customInput={Input}
+                                placeholder={t('employees.form.enterPhone')}
+                              />
+                            </Form.Item>
+
+                            <Button onClick={() => remove(name)} danger>
+                              <DeleteOutlined />
+                            </Button>
+                          </Space>
+                        ))}
+
+                        <Button type="dashed" onClick={() => add()} block icon={<PlusCircleOutlined />}>
+                          {t('employees.form.addMore')}
+                        </Button>
+                      </>
+                    )}
+                  </Form.List>
+                </Form>
+              </Modal>
+
+              {pointageLoading ? (
+                <Skeleton active />
+              ) : (
+                <Table
+                  rowSelection={rowSelection}
+                  dataSource={attendanceData}
+                  columns={columns}
+                  rowKey="employeeid"
+                  pagination={{ pageSize: 10 }}
+                  bordered
+                />
+              )}
+              <div style={{ display: "flex", justifyContent: "right", gap: "20px", marginTop: '20px' }}>
+                {toDelete && (
+                  <Button color='danger' variant="outlined" onClick={onDeleteEmp}>
+                    {t('employees.delete')}
+                  </Button>
+                )}
+                <Button color="green" variant="outlined" onClick={handleSubmitAttendance}>
+                  <SendOutlined />
+                  {t('employees.form.submitAttendance')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </>
+      ),
+    },
+    {
+      key: "3",
+      label: t('employees.tabs.reports'),
+      children: (
+        <>
+          <div className="p-4" style={{ padding: "20px" }}>
+            <h2
+              className="text-xl font-semibold mb-4"
+              style={{
+                textAlign: "center",
+                fontSize: "24px",
+                fontWeight: "bold",
+                marginBottom: "20px",
+              }}
+            >
+              {t('employees.tabs.employeesReports')}
+            </h2>
+
             <Flex vertical gap="middle">
-            ` <Radio.Group onChange={onChangeFetching} defaultValue="all">
-                <Radio.Button value="all">all</Radio.Button>
-                <Radio.Button value="select">selected users</Radio.Button>
+              <Radio.Group onChange={onChangeFetching} defaultValue="all">
+                <Radio.Button value="all">{t('employees.form.all')}</Radio.Button>
+                <Radio.Button value="select">{t('employees.form.selectedUsers')}</Radio.Button>
               </Radio.Group>
-            </Flex>`
-            {fetchingAll === true ? (
-              <>
+            </Flex>
+
+            {fetchingAll ? (
               <Form style={{ marginBottom: "20px" }}>
-              <Space
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "25px",
-                  width: "100%",
-                }}
-              >
-                <Form.Item
-                  name="startdate"
-                  label="Start Date"
-                  rules={[{ required: true, message: "Please select start date!" }]}
+                <Space
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "25px",
+                    width: "100%",
+                  }}
                 >
-                  <DatePicker
-                    format="YYYY-MM-DD"
-                    onChange={(date) => setStartDate(date)}
-                    disabledDate={(current) => current && current > dayjs().endOf("day")}
-                  />
-                </Form.Item>
-    
-                <Form.Item
-                  name="enddate"
-                  label="End Date"
-                  rules={[{ required: true, message: "Please select end date!" }]}
+                  <Form.Item
+                    name="startdate"
+                    label={t('employees.form.startDate')}
+                    rules={[{ required: true, message: t('employees.form.selectStartDate') }]}
+                  >
+                    <DatePicker
+                      format="YYYY-MM-DD"
+                      onChange={(date) => setStartDate(date)}
+                      disabledDate={(current) => current && current > dayjs().endOf("day")}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="enddate"
+                    label={t('employees.form.endDate')}
+                    rules={[{ required: true, message: t('employees.form.selectEndDate') }]}
+                  >
+                    <DatePicker
+                      format="YYYY-MM-DD"
+                      onChange={(date) => setEndDate(date)}
+                      disabledDate={(current) => current && current > dayjs().endOf("day")}
+                    />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button type="primary" onClick={fetchSalaries}>
+                      {t('employees.form.fetchSalaries')}
+                    </Button>
+                  </Form.Item>
+                </Space>
+              </Form>
+            ) : (
+              <Form style={{ marginBottom: "20px" }}>
+                <Space
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "25px",
+                    width: "100%",
+                  }}
                 >
-                  <DatePicker
-                    format="YYYY-MM-DD"
-                    onChange={(date) => setEndDate(date)}
-                    disabledDate={(current) => current && current > dayjs().endOf("day")}
-                  />
-                </Form.Item>
-    
-                <Form.Item>
-                  <Button type="primary" onClick={fetchSalaries}>
-                    Fetch Salaries
-                  </Button>
-                </Form.Item>
-              </Space>
-            </Form>
-              </>
-            ):(
-              <>
-               <Form style={{ marginBottom: "20px" }}>
-              <Space
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "25px",
-                  width: "100%",
-                }}
-              >
-                <Form.Item
-                rules={[{ required: true, message: "Please select at least one employee" }]}
-                >
-                <Select
-                    mode="multiple"
-                    allowClear
-                    style={{
-                      width: '400px',
-                    }}
-                    placeholder="Please select"
-                    defaultValue={[]}
-                    onChange={fetchSalariesForEmp}
-                    options={options}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="startdate"
-                  label="Start Date"
-                  rules={[{ required: true, message: "Please select start date!" }]}
-                >
-                  <DatePicker
-                    format="YYYY-MM-DD"
-                    onChange={(date) => setStartDate(date)}
-                    disabledDate={(current) => current && current > dayjs().endOf("day")}
-                  />
-                </Form.Item>
-    
-                <Form.Item
-                  name="enddate"
-                  label="End Date"
-                  rules={[{ required: true, message: "Please select end date!" }]}
-                >
-                  <DatePicker
-                    format="YYYY-MM-DD"
-                    onChange={(date) => setEndDate(date)}
-                    disabledDate={(current) => current && current > dayjs().endOf("day")}
-                  />
-                </Form.Item>
-    
-                <Form.Item>
-                  <Button type="primary" onClick={fetchSalaries}>
-                    Fetch Salaries
-                  </Button>
-                </Form.Item>
-              </Space>
-            </Form>
-            
-              </>
+                  <Form.Item
+                    rules={[{ required: true, message: t('employees.form.selectEmployees') }]}
+                  >
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      style={{ width: '400px' }}
+                      placeholder={t('employees.form.selectEmployeesPlaceholder')}
+                      defaultValue={[]}
+                      onChange={fetchSalariesForEmp}
+                      options={options}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="startdate"
+                    label={t('employees.form.startDate')}
+                    rules={[{ required: true, message: t('employees.form.selectStartDate') }]}
+                  >
+                    <DatePicker
+                      format="YYYY-MM-DD"
+                      onChange={(date) => setStartDate(date)}
+                      disabledDate={(current) => current && current > dayjs().endOf("day")}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="enddate"
+                    label={t('employees.form.endDate')}
+                    rules={[{ required: true, message: t('employees.form.selectEndDate') }]}
+                  >
+                    <DatePicker
+                      format="YYYY-MM-DD"
+                      onChange={(date) => setEndDate(date)}
+                      disabledDate={(current) => current && current > dayjs().endOf("day")}
+                    />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button type="primary" onClick={fetchSalaries}>
+                      {t('employees.form.fetchSalaries')}
+                    </Button>
+                  </Form.Item>
+                </Space>
+              </Form>
             )}
 
-      {/* Loading Indicator */}
-      {loading && <Skeleton active />}
+            {loading && <Skeleton active />}
 
-      <div ref={tableRefs} style={{ padding: "20px", background: "#fff" }}>
-            <Collapse
-              accordion
-              activeKey={activeKey}
-              onChange={(key) => {
-                setActiveKey(key);
-              }}
-              items={reports.map((report) => ({
-                key: report.key,
-                label: `From: ${report.startDate} To: ${report.endDate}` ,
-                children: (
-                  <div ref={(el) => (tableRefs.current[report.key] = el)}
-                  style={{ display: activeKey?.includes(report.key) ? "block" : "none" }}
-
-                  >
-                    <Table
-                      style={{
-                        marginBottom: "30px",
-                        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
-                        borderRadius: "8px",
-                      }}
-                      dataSource={report.data}
-                      columns={salariesColumns}
-                      rowKey="employeeid"
-                      pagination={
-                        // pageSize: 8,
-                        // showSizeChanger: false,
-                        false
-                      }
-                      bordered
-                      title={() => (
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            gap: "30px",
-                            fontSize: "20px",
-                            padding: "8px 16px",
-                            backgroundColor: "#f5f5f5",
-                            borderRadius: "4px",
-                          }}
-                        >
-                          <span>
-                            <strong>From: {report.startDate}</strong>
-                          </span>
-                          <span>
-                            <strong>To: {report.endDate}</strong>
-                          </span>
-                        </div>
-                      )}
-                      footer={() => {
-                        const totalFinalSalary = report.data.reduce(
-                          (sum, record) => sum + record.final_salary,
-                          0
-                        );
-                        return (
+            <div ref={tableRefs} style={{ padding: "20px", background: "#fff" }}>
+              <Collapse
+                accordion
+                activeKey={activeKey}
+                onChange={(key) => setActiveKey(key)}
+                items={reports.map((report) => ({
+                  key: report.key,
+                  label: `${t('employees.form.from')}: ${report.startDate} ${t('employees.form.to')}: ${report.endDate}`,
+                  children: (
+                    <div
+                      ref={(el) => (tableRefs.current[report.key] = el)}
+                      style={{ display: activeKey?.includes(report.key) ? "block" : "none" }}
+                    >
+                      <Table
+                        style={{
+                          marginBottom: "30px",
+                          boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+                          borderRadius: "8px",
+                        }}
+                        dataSource={report.data}
+                        columns={salariesColumns}
+                        rowKey="employeeid"
+                        pagination={false}
+                        bordered
+                        title={() => (
                           <div
                             style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(8, 1fr)",
-                              fontWeight: "bold",
-                              textAlign: "center",
-                              borderTop: "1px solid #d9d9d9",
+                              display: "flex",
+                              justifyContent: "center",
+                              gap: "30px",
+                              fontSize: "20px",
+                              padding: "8px 16px",
+                              backgroundColor: "#f5f5f5",
+                              borderRadius: "4px",
                             }}
                           >
-                            <div
-                              style={{
-                                gridColumn: "1 / span 7",
-                                fontSize: "x-large",
-                                textAlign: "center",
-                                padding: "8px",
-                                borderRight: "1px solid rgb(133, 132, 132)",
-                              }}
-                            >
-                              Total
-                            </div>
-                            <div
-                              style={{
-                                gridColumn: "8 / span 1",
-                                marginTop: "15px",
-                                textAlign: "center",
-                                padding: "8px",
-                              }}
-                            >
-                              <Tag color="darkgreen" style={{ fontSize: "14px", padding: "5px 10px" }}>
-                                {totalFinalSalary.toFixed(2).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
-                              </Tag>
-                            </div>
+                            <span>
+                              <strong>{t('employees.form.from')}: {report.startDate}</strong>
+                            </span>
+                            <span>
+                              <strong>{t('employees.form.to')}: {report.endDate}</strong>
+                            </span>
                           </div>
-                        );
-                      }}
-                    />
-                  </div>
-                ),
-                extra: (
-                  <div style={{ display: "flex", gap: "15px" }}>
-                    <Button
-                      size="small"
-                      color="cyan" 
-                      variant="outlined"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePrint(report.key);
-                      }}
-                    >
-                      <PrinterOutlined />
-                      Print
-                    </Button>
-                    <Button
-                      size="small"
-                      danger
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteReport(report.key);
-                      }}
-                    >
-                      <DeleteOutlined />
-                      Delete
-                    </Button>
-                  </div>
-                ),
-              }))}
-            />
-
+                        )}
+                        footer={() => {
+                          const totalFinalSalary = report.data.reduce(
+                            (sum, record) => sum + record.final_salary,
+                            0
+                          );
+                          return (
+                            <div
+                              style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(8, 1fr)",
+                                fontWeight: "bold",
+                                textAlign: "center",
+                                borderTop: "1px solid #d9d9d9",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  gridColumn: "1 / span 7",
+                                  fontSize: "x-large",
+                                  textAlign: "center",
+                                  padding: "8px",
+                                  borderRight: "1px solid rgb(133, 132, 132)",
+                                }}
+                              >
+                                {t('employees.form.total')}
+                              </div>
+                              <div
+                                style={{
+                                  gridColumn: "8 / span 1",
+                                  marginTop: "15px",
+                                  textAlign: "center",
+                                  padding: "8px",
+                                }}
+                              >
+                                <Tag color="darkgreen" style={{ fontSize: "14px", padding: "5px 10px" }}>
+                                  {totalFinalSalary.toFixed(2).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                                </Tag>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+                  ),
+                  extra: (
+                    <div style={{ display: "flex", gap: "15px" }}>
+                      <Button
+                        size="small"
+                        color="cyan"
+                        variant="outlined"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePrint(report.key);
+                        }}
+                      >
+                        <PrinterOutlined />
+                        {t('employees.form.print')}
+                      </Button>
+                      <Button
+                        size="small"
+                        danger
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteReport(report.key);
+                        }}
+                      >
+                        <DeleteOutlined />
+                        {t('employees.form.deleteReport')}
+                      </Button>
+                    </div>
+                  ),
+                }))}
+              />
+            </div>
           </div>
-        </div>
-      </>
+        </>
       ),
-    }      
+    }
   ];
 
   return (
@@ -1164,5 +1124,4 @@ const salariesColumns = useMemo (()=>
     </div>
   );
 };
-
 export default AdminEmployees;

@@ -76,12 +76,14 @@ background-color: var(--background-color4);
     cursor: pointer; 
     width: 100%;
   }
+
+  
 .logout-div{
-  margin-top: 150px;
+  margin-top: 10px;
   margin-right: 10px;
 }
 
-.logout-button {
+.custom-button {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -119,7 +121,24 @@ background-color: var(--background-color4);
     transform: translateY(0);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
+
+  .language-button.collapsed {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    padding: 0;
+  }  
+  .language-button {
+    background-color: #1890ff;
+  }
   
+  .language-button:hover {
+    background-color: #0073e6;
+  }
+  .language-button:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
   
 .active2{
     border-left: 8px solid var(--border-color);

@@ -1,0 +1,144 @@
+{
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "projects": "Projets",
+    "reports": "Rapports",
+    "articles": "Articles",
+    "employees": "Employés",
+    "logout": "Déconnexion",
+    "language": "Langue",
+    "toggleLanguage": {
+      "en": "Anglais",
+      "fr": "Français"
+    }
+  },
+  "dashboard": {
+    "the Admin Dashboard": "Tableau de bord administrateur",
+    "welcome": "Bienvenue dans le panneau d'administration",
+    "overview": "Aperçu",
+    "quickStats": "Statistiques rapides",
+    "recentActivity": "Activité récente",
+    "viewDetails": "Voir les détails"
+  },
+  "employees": {
+  "title": "Gérer les employés",
+  "addNew": "Ajouter un nouvel employé",
+  "search": "Rechercher des employés",
+  "edit": "Modifier",
+  "delete": "Supprimer",
+  "confirm": "Confirmer",
+  "cancel": "Annuler",
+  "nameColumn": "Nom",
+  "successAdd": "Employés ajoutés avec succès !",
+  "errorAdd": "Échec de la soumission : {{message}}",
+  "successUpdateAttendance": "Présence mise à jour avec succès pour le {{date}}",
+  "errorUpdateAttendance": "Échec de la mise à jour : {{message}}",
+  "present": "Présent",
+  "absent": "Absent",
+  "days": {
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche"
+  },
+  "error": {
+    "fetchEmployees": "Échec de la récupération des employés",
+    "fetchNewEmployees": "Échec de la récupération des nouveaux employés",
+    "delete": "Échec de la suppression des employés",
+    "saveAttendance": "Échec de l'enregistrement de la présence",
+    "submissionFailed": "Échec de la soumission : {{message}}",
+    "selectDates": "Veuillez sélectionner les dates de début et de fin.",
+    "fetchSalaries": "Échec de la récupération des données de salaires."
+  },
+  "success": {
+    "delete": "Employés supprimés avec succès !",
+    "submitAttendance": "Présence soumise avec succès !",
+    "addAdvance": "Avances ajoutées avec succès !",
+    "deleteReport": "Rapport supprimé avec succès !"
+  },
+  "salariesColumns": {
+    "name": "Nom",
+    "job": "Poste",
+    "prix": "Prix",
+    "daysPresent": "Jours présents",
+    "daysAbsent": "Jours absents",
+    "totalSalary": "Salaire total",
+    "totalAdvances": "Avances totales",
+    "finalSalary": "Salaire final"
+  },
+  "tabs": {
+    "dashboard": "Tableau de bord",
+    "pointage": "Pointage",
+    "reports": "Rapports",
+    "employeesDashboard": "Tableau de bord des employés",
+    "pointageManagement": "Gestion du pointage des employés",
+    "employeesReports": "Rapports des employés"
+  },
+  "form": {
+    "selectWeek": "Sélectionner la semaine",
+    "addAdvance": "Ajouter une avance",
+    "addAdvanceButton": "Ajouter une avance",
+    "addEmployees": "Ajouter des employés",
+    "addButton": "Ajouter",
+    "cancelButton": "Annuler",
+    "addMore": "Ajouter plus",
+    "employee": "Employé",
+    "selectEmployee": "Sélectionner un employé",
+    "amount": "Montant",
+    "enterAmount": "Entrer le montant",
+    "date": "Date",
+    "selectDate": "Sélectionner une date",
+    "name": "Nom",
+    "employeeName": "Nom de l'employé",
+    "role": "Rôle",
+    "enterRole": "Entrer le rôle",
+    "prix": "Prix",
+    "enterPrix": "Entrer le prix",
+    "phone": "Téléphone",
+    "enterPhone": "Entrer le téléphone (ex. 06 00 00 00 00)",
+    "submitAttendance": "Soumettre le pointage",
+    "all": "Tous",
+    "selectedUsers": "Utilisateurs sélectionnés",
+    "selectEmployees": "Sélectionner des employés",
+    "selectEmployeesPlaceholder": "Veuillez sélectionner des employés",
+    "startDate": "Date de début",
+    "selectStartDate": "Sélectionner la date de début",
+    "endDate": "Date de fin",
+    "selectEndDate": "Sélectionner la date de fin",
+    "fetchSalaries": "Récupérer les salaires",
+    "from": "De",
+    "to": "À",
+    "total": "Total",
+    "print": "Imprimer",
+    "deleteReport": "Supprimer"
+  }
+},
+  "articles": {
+    "title": "Gérer les articles",
+    "addNew": "Ajouter un nouvel article",
+    "search": "Rechercher des articles",
+    "edit": "Modifier",
+    "delete": "Supprimer"
+  },
+  "projects": {
+    "title": "Gérer les projets",
+    "addNew": "Ajouter un nouveau projet",
+    "search": "Rechercher des projets",
+    "edit": "Modifier",
+    "delete": "Supprimer"
+  },
+  "reports": {
+    "title": "Gérer les rapports",
+    "addNew": "Ajouter un nouveau rapport",
+    "search": "Rechercher des rapports",
+    "view": "Voir",
+    "download": "Télécharger"
+  },
+  "logout": {
+    "message": "Vous avez été déconnecté.",
+    "redirect": "Redirection vers la connexion..."
+  }
+}
