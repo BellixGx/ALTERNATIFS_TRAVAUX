@@ -13,7 +13,7 @@
     }
   },
   "dashboard": {
-    "title": "The Admin Dashboard",
+    "the Admin Dashboard": "The Admin Dashboard",
     "welcome": "Welcome to the Admin Panel",
     "overview": "Overview",
     "quickStats": "Quick Stats",

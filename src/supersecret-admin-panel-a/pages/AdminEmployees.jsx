@@ -440,7 +440,7 @@ const AdminEmployees = () => {
         const isBeforeCurrentDay = dayDate.isBefore(currentDay, 'day');
         const isSubmitted = submittedDates.includes(dateKey);
         const isEditing = editableDates[dateKey];
-        const isDisabled = (!isEditing && (!isBeforeCurrentDay || !isCurrentDay));
+        const isDisabled = (!isEditing && (isBeforeCurrentDay || !isCurrentDay || isSubmitted));
 
         return {
           title: (
