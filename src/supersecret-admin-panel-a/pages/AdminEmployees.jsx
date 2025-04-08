@@ -2,26 +2,24 @@ import React, { useState, useEffect, useMemo, useCallback, useRef  } from 'react
 import { config } from '../../config';
 import { useTranslation } from 'react-i18next';
 import { 
-  Tabs, Button, 
-  Table, message,
-  Radio, Modal, 
-  Form, Input, 
-  Space, Skeleton,  
-  DatePicker, Select, 
-  Tag, Collapse, 
-  Flex, Switch
+  Tabs, Button, Table, message,
+  Radio, Modal, Form, Input, 
+  Space, Skeleton, DatePicker, Select, 
+  Tag, Collapse, Flex, Switch,
+  Card, Statistic, Row, Col, Spin,
+  Alert, List,
 } from 'antd';
 import {
-  PlusCircleOutlined, 
-  DeleteOutlined, 
-  DollarOutlined, 
-  PrinterOutlined, 
-  EditOutlined,
-  CheckOutlined,
-  CloseOutlined,
-  UserOutlined,
-  SendOutlined
+  PlusCircleOutlined, DeleteOutlined, 
+  DollarOutlined, PrinterOutlined, 
+  EditOutlined, CheckOutlined,
+  CloseOutlined, UserOutlined,
+  SendOutlined, TeamOutlined, 
+  CheckCircleOutlined, CloseCircleOutlined
 } from '@ant-design/icons';
+import { PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis } from 'recharts';
+
 import { NumericFormat } from 'react-number-format';
 import dayjs from 'dayjs';
 import moment from 'moment';
@@ -137,29 +135,31 @@ const AdminEmployees = () => {
     const savedReports = JSON.parse(localStorage.getItem("reports")) || [];
     setReports(savedReports);
   }, []);
-
   const fetchEmployees = useCallback(async () => {
-    if (attendanceData.length > 0) return;
-
     setPointageLoading(true);
     try {
       const response = await fetch(`${config.apiBase}${config.endpoints.fetchEmployees}`);
-      if (!response.ok) {
-        throw new Error(t('employees.error.fetchEmployees'));
-      }
-
+      if (!response.ok) throw new Error(t('employees.error.fetchEmployees'));
       const employees = await response.json();
-      const initializedData = employees.map((employee) => ({
-        ...employee,
-        attendance: employee.attendance || {},
-      }));
-      setAttendanceData(initializedData);
+      const mappedData = employees.map(emp => {
+        const attendance = {};
+
+        (emp.pointage || []).forEach(p => {
+          const dateKey = p.Date || p.date; // Handle case sensitivity
+          const statusValue = p.Status !== undefined ? p.Status : p.status; // Handle case sensitivity
+          if (dateKey && statusValue !== undefined) {
+            attendance[dateKey] = statusValue === 1 ? 'present' : 'absent';
+          }
+        });
+        return { ...emp, attendance };
+      });
+      setAttendanceData(mappedData);
     } catch (error) {
       message.error(t('employees.error.submissionFailed', { message: error.message }));
     } finally {
       setPointageLoading(false);
     }
-  }, [attendanceData.length, t]);
+  }, []);
 
   useEffect(() => {
     fetchEmployees();
@@ -429,6 +429,36 @@ const AdminEmployees = () => {
     fetchSubmittedDates();
   }, []);
 
+  const weeklyData = (() => {
+    const weekStart = moment().startOf('week');
+    const result = [];
+    for (let i = 0; i < 7; i++) {
+      const day = weekStart.clone().add(i, 'days').format('YYYY-MM-DD');
+      const present = attendanceData.filter(emp => emp.attendance[day] === 'present').length;
+      result.push({ day: day.slice(5), present }); // e.g., "04-02" for April 2
+    }
+    return result;
+  })();
+
+
+
+  const employeeStats = attendanceData.map(emp => {
+    const today = moment().format('YYYY-MM-DD');
+    const attendanceEntries = Object.entries(emp.attendance).filter(([date]) =>
+      date !== 'undefined' && moment(date).isSameOrBefore(today)
+    );
+
+    const present = attendanceEntries.filter(([, status]) => status === 'present').length;
+    const absent = attendanceEntries.filter(([, status]) => status !== 'present').length; // Handles 'absen', etc.
+    return { name: emp.name, present, absent };
+  });
+  
+  const statsColumns = [
+    { title: t('employees.name'), dataIndex: 'name', key: 'name' },
+    { title: t('employees.present'), dataIndex: 'present', key: 'present' },
+    { title: t('employees.absent'), dataIndex: 'absent', key: 'absent' },
+  ];
+
   const columns = useMemo(
     () => [
       { title: t('employees.nameColumn'), dataIndex: 'name', key: 'name' },
@@ -646,7 +676,112 @@ const AdminEmployees = () => {
     {
       key: '1',
       label: t('employees.tabs.dashboard'),
-      children: <h2>{t('employees.tabs.employeesDashboard')}</h2>
+      children: (
+        <div>
+          <h2>{t('employees.tabs.employeesDashboard')}</h2>
+          {pointageLoading ? (
+            <Skeleton/>
+          ) : (
+            <>
+              <Row gutter={16} className="mb-6">
+                <Col span={8}>
+                  <Card size="small" className="custom-card">
+                    <Statistic
+                      title={<span className="stat-title">{t('employees.totalEmployees')}</span>}
+                      value={attendanceData.length}
+                      className="custom-stat"
+                    />
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card size="small" className="custom-card">
+                    <Statistic
+                      title={<span className="stat-title">{t('employees.presentToday')}</span>}
+                      value={attendanceData.filter(
+                        emp => emp.attendance[moment().format('YYYY-MM-DD')] === 'present'
+                      ).length}
+                      valueStyle={{ color: '#52c41a' }}
+                      className="custom-stat"
+                    />
+                  </Card>
+                </Col>
+                <Col span={8}>
+                  <Card size="small" className="custom-card">
+                    <Statistic
+                      title={<span className="stat-title">{t('employees.absentToday')}</span>}
+                      value={
+                        attendanceData.length -
+                        attendanceData.filter(
+                          emp => emp.attendance[moment().format('YYYY-MM-DD')] === 'present'
+                        ).length
+                      }
+                      valueStyle={{ color: '#f5222d' }}
+                      className="custom-stat"
+                    />
+                  </Card>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Card title={t('employees.attendanceBreakdown')} className="custom-card">
+                    <PieChart width={400} height={300}>
+                      <Pie
+                        data={[
+                          {
+                            name: t('employees.present'),
+                            value: attendanceData.filter(
+                              emp => emp.attendance[moment().format('YYYY-MM-DD')] === 'present'
+                            ).length
+                          },
+                          {
+                            name: t('employees.absent'),
+                            value: attendanceData.length -
+                              attendanceData.filter(
+                                emp => emp.attendance[moment().format('YYYY-MM-DD')] === 'present'
+                              ).length
+                          }
+                        ]}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        <Cell fill="#52c41a" />
+                        <Cell fill="#f5222d" />
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                    
+                  </Card>
+                  <Card title={t('employees.weeklyTrend')} className="custom-card mt-4">
+                    <BarChart width={400} height={300} data={weeklyData}>
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="present" fill="#1890ff" />
+                    </BarChart>
+                  </Card>
+                </Col>
+                <Col span={12}>
+                  <Card title={t('employees.employeeStats')} className="custom-card">
+                    <Table
+                      columns={statsColumns}
+                      dataSource={employeeStats}
+                      rowKey="name"
+                      pagination={false}
+                      size="small"
+                    />
+                  </Card>
+                </Col>
+              </Row>
+
+            </>
+          )}
+        </div>
+      ),
     },
     {
       key: '2',

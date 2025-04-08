@@ -35,6 +35,12 @@
   "errorUpdateAttendance": "Update failed: {{message}}",
   "present": "Present",
   "absent": "Absent",
+  "totalEmployees": "Total Employees",
+  "presentToday": "Present Today",
+  "absentToday": "Absent Today",
+  "attendanceBreakdown": "Attendance Breakdown",
+  "weeklyTrend": "Weekly Attendance Trend",
+  "employeeStats": "Employee Statistics",
   "days": {
     "monday": "Monday",
     "tuesday": "Tuesday",

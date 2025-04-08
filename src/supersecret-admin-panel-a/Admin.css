@@ -24,5 +24,31 @@
     border-color: var(--radio-color); /* Change hover effect */
   }
   
+/* Add gap between cards */
+.custom-card {
+  margin-bottom: 16px; /* Space below each card */
+}
+
+/* For the mt-4 class if not defined already */
+.mt-4 {
+  margin-top: 16px;
+}
+
+/* Custom statistic styling */
+.custom-stat .ant-statistic-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.custom-stat .ant-statistic-content-value {
+  font-size: 14px;
+}
+
+.stat-title {
+  font-size: 12px;
+  font-weight: 500;
+}
 
 /* Employees Section - END */

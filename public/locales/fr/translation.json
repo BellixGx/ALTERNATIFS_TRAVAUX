@@ -35,6 +35,12 @@
   "errorUpdateAttendance": "Échec de la mise à jour : {{message}}",
   "present": "Présent",
   "absent": "Absent",
+  "totalEmployees": "Nombre total d'employés",
+  "presentToday": "Présents aujourd'hui",
+  "absentToday": "Absents aujourd'hui",
+  "attendanceBreakdown": "Répartition de la présence",
+  "weeklyTrend": "Tendance hebdomadaire de la présence",
+  "employeeStats": "Statistiques des employés",
   "days": {
     "monday": "Lundi",
     "tuesday": "Mardi",

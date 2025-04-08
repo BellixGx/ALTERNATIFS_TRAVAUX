@@ -100,16 +100,39 @@ def get_data():
     else:
         return jsonify({'error': 'Failed to fetch data'}), 500
 
+
 @app.route('/api/fetchEmployees', methods=['GET'])
 def get_employees():
     try:
-        response = supabase.table("employees").select("employeeid, name").execute()
-        response_dict = response.model_dump()
+        # Fetch employee data
+        emp_response = supabase.table("employees").select("employeeid, name").execute()
+        emp_dict = emp_response.model_dump()
 
-        if "error" in response_dict and response_dict["error"]:
-            return jsonify({"error": response_dict["error"]["message"]}), 500
+        if "error" in emp_dict and emp_dict["error"]:
+            return jsonify({"error": emp_dict["error"]["message"]}), 500
 
-        return jsonify(response_dict["data"]), 200
+        employees = emp_dict["data"]
+
+        # Fetch pointage data for all employees
+        pointage_response = supabase.table("pointage").select("employeeid, date, status").execute()
+        pointage_dict = pointage_response.model_dump()
+
+        if "error" in pointage_dict and pointage_dict["error"]:
+            return jsonify({"error": pointage_dict["error"]["message"]}), 500
+
+        pointage_data = pointage_dict["data"]
+
+        # Combine employees with their pointage data
+        result = []
+        for emp in employees:
+            emp_pointage = [p for p in pointage_data if p["employeeid"] == emp["employeeid"]]
+            result.append({
+                "employeeid": emp["employeeid"],
+                "name": emp["name"],
+                "pointage": emp_pointage  # List of { EmployeeID, Date, Status }
+            })
+
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
